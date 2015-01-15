@@ -1,7 +1,9 @@
 package rsa;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.math.BigInteger;
 import java.util.Scanner;
 
@@ -16,7 +18,7 @@ public class RSA {
   public BigInteger publicKey,n;
 //  Private prime e
 //  Private s = (e-1)*(d-1)
-  private BigInteger privateKey,s;
+  private BigInteger privateKey;
   ModularArithmetic modArith;
   
   /*
@@ -28,7 +30,6 @@ public class RSA {
     publicKey = modArith.genPrime(b);
     privateKey = modArith.genPrime(b);
     n = privateKey.multiply(publicKey);
-    s = (publicKey.subtract(BigInteger.ONE)).multiply(privateKey.subtract(BigInteger.ONE));
   }
   
   /*
@@ -40,7 +41,6 @@ public class RSA {
     publicKey = modArith.genPrime(b);
     privateKey = modArith.genPrime(b);
     n = publicKey.multiply(privateKey);
-    s = (publicKey.subtract(BigInteger.ONE)).multiply(privateKey.subtract(BigInteger.ONE));
     
     try {
       PrintWriter file = new PrintWriter(filename);
@@ -76,5 +76,52 @@ public class RSA {
    */
   public BigInteger decrpyt(BigInteger c){
     return modArith.modexp(c, privateKey, n);
+  }
+  
+  /*
+   * Creates an encrypted version of the input file
+   */
+  public void encryptFile(String filename, BigInteger N, BigInteger e) throws IOException{
+
+
+    
+//    Convert to Big Int and encrypt
+    BigInteger fileAsNumb = this.readFileAsBigInt(filename);
+//    Encrypt File
+    BigInteger fileEncrypted = this.encrypt(fileAsNumb, N, e);
+    
+//    Output new file
+    RandomAccessFile write = new RandomAccessFile(filename + "enc", "w");
+    write.write(fileEncrypted.toByteArray());
+    write.close();
+  }
+  
+  /*
+   * Decrypts information from a file
+   */
+  public void decryptFile(String filename) throws IOException{
+    
+//    Read File
+    BigInteger encrypted = this.readFileAsBigInt(filename);
+//    Decrypt
+    BigInteger decrypt = this.decrpyt(encrypted);
+    
+//  Output new file
+    RandomAccessFile write = new RandomAccessFile(filename + "enc", "w");
+    write.write(decrypt.toByteArray());
+    write.close();
+    
+  }
+  
+  private BigInteger readFileAsBigInt(String filename) throws IOException{
+    //    Access File
+    RandomAccessFile read = new RandomAccessFile(filename, "r");
+    
+//    Make Byte Array of Same size as file
+    byte[] b = new byte[(int)read.length()];
+//    Read file in as Bytes
+    read.read(b);
+    read.close();
+    return new BigInteger(b);
   }
 }
