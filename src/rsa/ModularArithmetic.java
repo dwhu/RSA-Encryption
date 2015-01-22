@@ -11,6 +11,7 @@ import com.sun.xml.internal.bind.util.Which;
  *
  */
 public class ModularArithmetic {
+ 
   
   /*
    *  c = modadd(a,b,n)
@@ -19,6 +20,7 @@ public class ModularArithmetic {
   public BigInteger modadd(BigInteger a, BigInteger b, BigInteger n){    
     return this.mod(a.add(b),n);
   }
+  
   
   /*
    *  c = modmult(a,b,n)
@@ -37,6 +39,7 @@ public class ModularArithmetic {
     return this.mod(a.add(c.multiply(new BigInteger("2"))),n);
   }
   
+  
   /*
    *  c = moddiv(a,b,n)
    *  c = a/b (mod n)
@@ -46,6 +49,7 @@ public class ModularArithmetic {
     EuclidObject eo = this.extend_euclid(b,n);
     return this.modmult(a, eo.x, n);
   }
+  
   
   /*
    *  c = modexp(a,b,n)
@@ -68,29 +72,85 @@ public class ModularArithmetic {
     }
   }
   
-//  NOT WORKING YET
-//  /*
-//   * True if probability of n is prime <= (1/2)^k
-//   * False otherwise
-//   */
-//  public boolean isPrime(BigInteger n, int k){
-//    return n.isProbablePrime(k);
-//  }
-//  
-//  /*
-//   * Generates Prime Numbers of n bits
-//   */
-//  public BigInteger genPrime(int n){
-//    Integer largestNum = new Integer(2^n-1);
-//    
-//    for(int i = largestNum; i >0; i--){
-//      for(int x = i; x<i;x++){
-//        BigInteger 
-//        if() 
-//      }
-//    }
-//     
-//  }
+  
+  /*
+   * True if probability of n is prime <= (1/2)^k
+   * False otherwise
+   */
+  public boolean isPrime(BigInteger n, int k){
+    
+    double currentProb = 1;
+    double targetProb = 1;
+    BigInteger nMinusOne = n.subtract(BigInteger.ONE);
+
+//    (1/2)^k
+    for(int x = 0; x < k;x++){
+      targetProb *= 0.5;
+    }
+
+    for(Integer i = 2; i < n.intValue(); i++){
+      BigInteger modExp = this.modexp(new BigInteger(i.toString()),nMinusOne,n);
+      
+      if(modExp.compareTo(BigInteger.ONE) != 0){
+        currentProb *= 0.5;
+        if(currentProb < targetProb){
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  
+  /*
+   * Generates Prime Numbers of n bits
+   */
+  public BigInteger genPrime(int n){
+    Integer largestNum = new Integer(2^n-1);
+    BigInteger primeNumber = null;
+    
+    boolean isPrime = false;
+//    Start from Largest number and go down to generate a large prime
+    for(Integer i = largestNum; i >0; i--){
+//      start from bottom to eliminate evens early
+      for(Integer x = 1; x<i;x++){
+        
+        Integer iMinusOne = i-1;
+        BigInteger a = this.modexp(new BigInteger(x.toString()),
+            new BigInteger(iMinusOne.toString()),
+            new BigInteger(largestNum.toString())); 
+        
+//        x^(i-1) mod(i) != 1 means i is not prime
+        if(a.compareTo(BigInteger.ONE) != 0){
+          break;
+        }
+        
+//        Last time through means that for all 1<=x<N x^(i-1) mod(i) == 1
+//        So have last round through the loop set boolean to true so we break
+//        out of outer loop
+        if(x==(i-1)){
+          isPrime = true;
+        }
+      }
+      if(isPrime = true){
+        primeNumber = new BigInteger(i.toString());
+        break;
+      }
+    }
+    
+    
+//    primeNumber was set in the loop
+//    All is right in the world
+    if(primeNumber != null && isPrime == true){
+      return primeNumber;
+    }
+    
+//    No prime numbers found
+//    This should never happen because 2 should always work
+    return BigInteger.ZERO;
+  }
+  
   
   private BigInteger mod(BigInteger a, BigInteger n){
     while(a.compareTo(n) == -1){
@@ -98,6 +158,7 @@ public class ModularArithmetic {
     }
     return a;
   }
+  
   
   /*
    * Extend Euclid Algorithm
@@ -117,18 +178,6 @@ public class ModularArithmetic {
     return new EuclidObject(prevStep.y,tmp,prevStep.d);
   }
   
-//  Class to allow me to pass multiple vars in a function
-//  Class maps to an Euclid object where ax+by=d
-  class EuclidObject {
-    public BigInteger x,y,d;
-    
-    public EuclidObject(BigInteger x1, BigInteger y1, BigInteger d1){
-      x=x1;
-      y=y1;
-      d=d1;
-    }
-  }
-  
   
 //  Greatest Common Divisor
 //  d=gcd(a,b) d|a d|b where d>= all other divisors
@@ -138,4 +187,17 @@ public class ModularArithmetic {
     if(b.compareTo(BigInteger.ZERO) == 0) return a;
     return gcd(b,a.mod(b));
   }
+  
+  
+  //Class to allow me to pass multiple vars in a function
+  //Class maps to an Euclid object where ax+by=d
+  private class EuclidObject {
+    public BigInteger x,y,d;
+    
+    public EuclidObject(BigInteger x1, BigInteger y1, BigInteger d1){
+      x=x1;
+      y=y1;
+      d=d1;
+    }
+}
 }
