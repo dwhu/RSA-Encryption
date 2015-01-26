@@ -3,8 +3,6 @@ package rsa;
 import java.math.BigInteger;
 import java.util.Random;
 
-import com.sun.xml.internal.bind.util.Which;
-
 /**
  * Class to Implement basic Modular Arithmetic functions
  * @author hughdw11
@@ -17,8 +15,8 @@ public class ModularArithmetic {
    *  c = modadd(a,b,n)
    *  c = a+b (mod n)
    */
-  public BigInteger modadd(BigInteger a, BigInteger b, BigInteger n){    
-    return this.mod(a.add(b),n);
+  public static BigInteger modadd(BigInteger a, BigInteger b, BigInteger n){    
+    return mod(a.add(b),n);
   }
   
   
@@ -26,17 +24,10 @@ public class ModularArithmetic {
    *  c = modmult(a,b,n)
    *  c = a*b (mod n)
    */
-  public BigInteger modmult(BigInteger a, BigInteger b, BigInteger n){
-    
-    if (b.equals(BigInteger.ZERO)) return BigInteger.ZERO;
-    
-    BigInteger c = this.modmult(a, b.divide(new BigInteger("2")), n);
-    if(c.testBit(0)){
-//      C is odd
-      return this.mod(c.multiply(new BigInteger("2")),n);
-    }
-//    C is even
-    return this.mod(a.add(c.multiply(new BigInteger("2"))),n);
+  public static BigInteger modmult(BigInteger a, BigInteger b, BigInteger n){
+     a = mod(a,n);
+     b = mod(b,n);
+     return mod(a.multiply(b),n);
   }
   
   
@@ -44,10 +35,12 @@ public class ModularArithmetic {
    *  c = moddiv(a,b,n)
    *  c = a/b (mod n)
    */
-  public BigInteger moddiv(BigInteger a, BigInteger b, BigInteger n){
+  public static BigInteger moddiv(BigInteger a, BigInteger b, BigInteger n){
     
-    EuclidObject eo = this.extend_euclid(b,n);
-    return this.modmult(a, eo.x, n);
+//    nx+by=d
+    EuclidObject eo = new EuclidObject(extendedEuclid(n,b));
+    System.out.println(eo.toString());
+    return mod(a.multiply(mod(eo.y,n)), n);
   }
   
   
@@ -55,20 +48,20 @@ public class ModularArithmetic {
    *  c = modexp(a,b,n)
    *  c = a^b (mod n)
    */
-  public BigInteger modexp(BigInteger a, BigInteger b, BigInteger n){
+  public static BigInteger modexp(BigInteger a, BigInteger b, BigInteger n){
     
     if(b.compareTo(BigInteger.ZERO) == 0){
       return BigInteger.ONE;
     }
     
     BigInteger z = modexp(a,b.divide(new BigInteger("2")),n);
-    
+    z = modmult(z,z,n);
 //    If Odd (z^2)mod(n)
-    if(b.testBit(0)){
-      return this.modmult(z, z, n);
+    if(!b.testBit(0)){
+      return z;
     }else{
 //      If Even ((z^2)*a)mod(n)
-      return this.modmult(z.multiply(z), a, n);
+      return mod(z.multiply(mod(a,n)),n);
     }
   }
   
@@ -77,83 +70,69 @@ public class ModularArithmetic {
    * True if probability of n is prime <= (1/2)^k
    * False otherwise
    */
-  public boolean isPrime(BigInteger n, int k){
+  public static boolean isPrime(BigInteger n, int k){
     
-    double currentProb = 1;
-    double targetProb = 1;
     BigInteger nMinusOne = n.subtract(BigInteger.ONE);
+    Random rand = new Random();
 
-//    (1/2)^k
-    for(int x = 0; x < k;x++){
-      targetProb *= 0.5;
-    }
-
-    for(Integer i = 2; i < n.intValue(); i++){
-      BigInteger modExp = this.modexp(new BigInteger(i.toString()),nMinusOne,n);
+    for(int i = 0; i < k; i++){
       
+      Integer currentInt = rand.nextInt(Math.abs(nMinusOne.intValue()))+ 1;
+      
+//      Mod it early before it gets really expensive when it is taken to 
+//      a huge power
+      BigInteger currentBig = new BigInteger(currentInt.toString());
+//      
+//      i^(n-1) mod n
+      BigInteger modExp = modexp(currentBig,nMinusOne,n);
+            
       if(modExp.compareTo(BigInteger.ONE) != 0){
-        currentProb *= 0.5;
-        if(currentProb < targetProb){
-          return true;
-        }
+        return false;
       }
     }
     
-    return false;
+    return true;
   }
   
   
   /*
    * Generates Prime Numbers of n bits
    */
-  public BigInteger genPrime(int n){
-    Integer largestNum = new Integer(2^n-1);
-    BigInteger primeNumber = null;
+  public static BigInteger genPrime(int n){
     
-    boolean isPrime = false;
-//    Start from Largest number and go down to generate a large prime
-    for(Integer i = largestNum; i >0; i--){
-//      start from bottom to eliminate evens early
-      for(Integer x = 1; x<i;x++){
-        
-        Integer iMinusOne = i-1;
-        BigInteger a = this.modexp(new BigInteger(x.toString()),
-            new BigInteger(iMinusOne.toString()),
-            new BigInteger(largestNum.toString())); 
-        
-//        x^(i-1) mod(i) != 1 means i is not prime
-        if(a.compareTo(BigInteger.ONE) != 0){
-          break;
-        }
-        
-//        Last time through means that for all 1<=x<N x^(i-1) mod(i) == 1
-//        So have last round through the loop set boolean to true so we break
-//        out of outer loop
-        if(x==(i-1)){
-          isPrime = true;
-        }
+    if(n == 0)
+      return BigInteger.ONE;
+    
+    Integer largestPossibleNum = 2;
+    
+    Integer smallestPossibleNum = null; 
+
+//    2^n
+    for(int i = 1; i < n; i++){
+      if(i == n-1){
+//      (2^n)-1
+        smallestPossibleNum = largestPossibleNum;
       }
-      if(isPrime = true){
-        primeNumber = new BigInteger(i.toString());
-        break;
-      }
+      largestPossibleNum = largestPossibleNum*2;
     }
     
+    Integer primeNumber = null;
+    Random rand = new Random();
     
-//    primeNumber was set in the loop
-//    All is right in the world
-    if(primeNumber != null && isPrime == true){
-      return primeNumber;
+    while(true){
+      primeNumber = rand.nextInt(largestPossibleNum);
+
+      if(primeNumber >= smallestPossibleNum &&
+          isPrime(new BigInteger(primeNumber.toString()),n)){
+        return new BigInteger(primeNumber.toString());
+      }
+      
     }
-    
-//    No prime numbers found
-//    This should never happen because 2 should always work
-    return BigInteger.ZERO;
-  }
+  } 
   
-  
-  private BigInteger mod(BigInteger a, BigInteger n){
-    while(a.compareTo(n) == -1){
+  private static BigInteger mod(BigInteger a, BigInteger n){
+    a = a.abs();
+    while(a.compareTo(n) >=0){
       a = a.subtract(n);
     }
     return a;
@@ -163,19 +142,20 @@ public class ModularArithmetic {
   /*
    * Extend Euclid Algorithm
    */
-  private EuclidObject extend_euclid(BigInteger a, BigInteger b){
+  public static BigInteger [] extendedEuclid(BigInteger a, BigInteger b){
     
 //    a >= n >=0
     if(b.equals(BigInteger.ZERO)){
-      return new EuclidObject(BigInteger.ONE,BigInteger.ZERO,a);
+      return new EuclidObject(BigInteger.ONE,BigInteger.ZERO,a).toArray();
     }
     
-    EuclidObject prevStep = extend_euclid(b,a.mod(b));
+    EuclidObject prevStep = new EuclidObject(extendedEuclid(b,a.mod(b)));
     
 //    x'-floor(a/b)*y'
-    BigInteger tmp = prevStep.x.add(a.not().divide(b).multiply(prevStep.y));
+    BigInteger tmp = prevStep.x.add((a.divide(b)).multiply(prevStep.y).multiply(new BigInteger("-1")));
+    
 //    return [y',x'-floor(a/b)*y',d']
-    return new EuclidObject(prevStep.y,tmp,prevStep.d);
+    return new EuclidObject(prevStep.y,tmp,prevStep.d).toArray();
   }
   
   
@@ -189,15 +169,35 @@ public class ModularArithmetic {
   }
   
   
-  //Class to allow me to pass multiple vars in a function
-  //Class maps to an Euclid object where ax+by=d
-  private class EuclidObject {
-    public BigInteger x,y,d;
-    
-    public EuclidObject(BigInteger x1, BigInteger y1, BigInteger d1){
-      x=x1;
-      y=y1;
-      d=d1;
-    }
-}
+  /**Class to allow me to pass multiple vars in a function
+   Class maps to an Euclid object where ax+by=d
+  */
+  private static class EuclidObject {
+      public BigInteger x,y,d;
+      
+      public EuclidObject(BigInteger x1, BigInteger y1, BigInteger d1){
+        x=x1;
+        y=y1;
+        d=d1;
+      }
+      
+      public EuclidObject(BigInteger [] arry){
+        x = arry[0];
+        y = arry[1];
+        d = arry[2];
+      }
+      
+      public BigInteger [] toArray(){
+        BigInteger [] arry = new BigInteger[3]; 
+        arry[0] = x;
+        arry[1] = y;
+        arry[2] = d;
+        return arry;
+      }
+      
+      @Override
+      public String toString(){
+        return "["+x+","+y+","+d+"]";
+      }
+  }
 }
