@@ -13,18 +13,19 @@ public class Main {
     System.out.println("Private Key: " + rsa.privateKey + "\n");
     System.out.println("N: " + rsa.n + "\n");
 
-    
+//    Read in Message
     System.out.println("Encrypted Message: ");
     String en = scan.nextLine();
+    
     BigInteger encrypt = rsa.encrypt(en);
 //    System.out.println("Encrypted Message: ");
 //    String encrpt = scan.next();
     BigInteger decrypt = rsa.decrpyt(encrypt);
     
     System.out.println("\n\n Message Decrypts to: "+ RSA.intToString(decrypt));
-    return;
     
-//    System.out.println(RSA.intToString(RSA.stringToInt("9939193913131")));
+//    Prove that these methods works
+    System.out.println("Origional message: " + RSA.intToString(RSA.stringToInt(en)));
   }
 
 }
