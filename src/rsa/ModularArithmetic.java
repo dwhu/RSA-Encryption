@@ -44,7 +44,6 @@ public class ModularArithmetic {
     BigInteger abInverse = a.multiply(bInverse);
     //a*(b^-1) mod n
     BigInteger aDivB = abInverse.mod(n);
-    System.out.println("a: "+ a + " b: "+ b + " n " + n+ " "+ bInverse +" " + aDivB);
     return aDivB;
   }
   
@@ -152,12 +151,12 @@ public class ModularArithmetic {
     
     BigInteger [] prevStep = extendedEuclid(n,a.mod(n));
     
-    //x'-floor(a/b)*y'
+    //x'-floor(a/n)*y'
     BigInteger aDivBMultY = (a.divide(n)).multiply(prevStep[1]);
     BigInteger tmp = prevStep[0].add(aDivBMultY.negate());
     
     //return [y',x'-floor(a/b)*y',d']
-    return new BigInteger [] {prevStep[2],tmp,prevStep[2]};
+    return new BigInteger [] {prevStep[1],tmp,prevStep[2]};
    
   }
 }
