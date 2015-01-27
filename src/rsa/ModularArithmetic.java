@@ -27,7 +27,8 @@ public class ModularArithmetic {
   public static BigInteger modmult(BigInteger a, BigInteger b, BigInteger n){
      a = mod(a,n);
      b = mod(b,n);
-     return mod(a.multiply(b),n);
+     BigInteger x = a.multiply(b);
+     return mod(x,n);
   }
   
   
@@ -37,10 +38,13 @@ public class ModularArithmetic {
    */
   public static BigInteger moddiv(BigInteger a, BigInteger b, BigInteger n){
     
-//    nx+by=d
-    EuclidObject eo = new EuclidObject(extendedEuclid(n,b));
-    System.out.println(eo.toString());
-    return mod(a.multiply(mod(eo.y,n)), n);
+    //nx+by=d
+    BigInteger bInverse = extendedEuclid(b,n)[0];
+    BigInteger abInverse = a.multiply(bInverse);
+    //a*(b^-1) mod n
+    BigInteger aDivB = mod(abInverse,n);
+    System.out.println("a: "+ a + " b: "+ b + " n " + n+ " "+ bInverse +" " + aDivB);
+    return aDivB;
   }
   
   
@@ -50,18 +54,26 @@ public class ModularArithmetic {
    */
   public static BigInteger modexp(BigInteger a, BigInteger b, BigInteger n){
     
+    final BigInteger two = new BigInteger("2");
+    
     if(b.compareTo(BigInteger.ZERO) == 0){
       return BigInteger.ONE;
     }
     
-    BigInteger z = modexp(a,b.divide(new BigInteger("2")),n);
+    // b/2
+    BigInteger bdiv2 = b.divide(two);
+    BigInteger z = modexp(a,bdiv2,n);
+    
+    //z^2 mod n
     z = modmult(z,z,n);
-//    If Odd (z^2)mod(n)
-    if(!b.testBit(0)){
+    
+    //If Odd (z^2)mod(n)
+    if(mod(b,two).compareTo(BigInteger.ONE) == 0){
       return z;
     }else{
-//      If Even ((z^2)*a)mod(n)
-      return mod(z.multiply(mod(a,n)),n);
+      //If Even ((z^2)*a)mod(n)
+      
+      return mod(z.multiply(a),n);
     }
   }
   
@@ -79,11 +91,11 @@ public class ModularArithmetic {
       
       Integer currentInt = rand.nextInt(Math.abs(nMinusOne.intValue()))+ 1;
       
-//      Mod it early before it gets really expensive when it is taken to 
-//      a huge power
+      //Mod it early before it gets really expensive when it is taken to 
+      //a huge power
       BigInteger currentBig = new BigInteger(currentInt.toString());
-//      
-//      i^(n-1) mod n
+   
+      //i^(n-1) mod n
       BigInteger modExp = modexp(currentBig,nMinusOne,n);
             
       if(modExp.compareTo(BigInteger.ONE) != 0){
@@ -98,42 +110,47 @@ public class ModularArithmetic {
   /*
    * Generates Prime Numbers of n bits
    */
-  public static BigInteger genPrime(int n){
+  public static BigInteger genPrime(final int n){
     
-    if(n == 0)
+    if(n == 0){
       return BigInteger.ONE;
-    
-    Integer largestPossibleNum = 2;
-    
-    Integer smallestPossibleNum = null; 
-
-//    2^n
-    for(int i = 1; i < n; i++){
-      if(i == n-1){
-//      (2^n)-1
-        smallestPossibleNum = largestPossibleNum;
-      }
-      largestPossibleNum = largestPossibleNum*2;
     }
     
-    Integer primeNumber = null;
+    BigInteger two = new BigInteger("2");
+    BigInteger smallestPossibleNum = new BigInteger("2"); 
+
+    //2^n
+    for(int i = 1; i < n-1; i++){
+      smallestPossibleNum = smallestPossibleNum.multiply(two);
+    }
+    
+    BigInteger primeNumber = null;
     Random rand = new Random();
     
-    while(true){
-      primeNumber = rand.nextInt(largestPossibleNum);
-
-      if(primeNumber >= smallestPossibleNum &&
-          isPrime(new BigInteger(primeNumber.toString()),n)){
-        return new BigInteger(primeNumber.toString());
+    while(true){ 
+      //Generates using the constructor a random number of n bits
+      primeNumber = new BigInteger(n,rand);
+      
+      if(primeNumber.compareTo(smallestPossibleNum) >= 0 &&
+          isPrime(primeNumber,n)){
+        return primeNumber;
       }
       
     }
   } 
   
   private static BigInteger mod(BigInteger a, BigInteger n){
-    a = a.abs();
-    while(a.compareTo(n) >=0){
-      a = a.subtract(n);
+
+    if(a.compareTo(n) > 0 ){
+      while(a.compareTo(n) > 0 && a.compareTo(BigInteger.ZERO) > 0 ){
+        a = a.subtract(n);
+      }
+    }else if(a.compareTo(n) < 0){
+      while(a.compareTo(n) < 0 && a.compareTo(BigInteger.ZERO) < 0){
+        a = a.add(n);
+      }
+    }else{
+      return BigInteger.ZERO;
     }
     return a;
   }
@@ -142,37 +159,29 @@ public class ModularArithmetic {
   /*
    * Extend Euclid Algorithm
    */
-  public static BigInteger [] extendedEuclid(BigInteger a, BigInteger b){
+  public static BigInteger [] extendedEuclid(BigInteger a, BigInteger n){
     
-//    a >= n >=0
-    if(b.equals(BigInteger.ZERO)){
+    // a >= n >=0
+    if(n.compareTo(BigInteger.ZERO) == 0){
       return new EuclidObject(BigInteger.ONE,BigInteger.ZERO,a).toArray();
     }
     
-    EuclidObject prevStep = new EuclidObject(extendedEuclid(b,a.mod(b)));
+    EuclidObject prevStep = new EuclidObject(extendedEuclid(n,a.mod(n)));
     
-//    x'-floor(a/b)*y'
-    BigInteger tmp = prevStep.x.add((a.divide(b)).multiply(prevStep.y).multiply(new BigInteger("-1")));
+    //x'-floor(a/b)*y'
+    BigInteger aDivBMultY = (a.divide(n)).multiply(prevStep.y);
+    BigInteger tmp = prevStep.x.add(aDivBMultY.negate());
     
-//    return [y',x'-floor(a/b)*y',d']
+    //return [y',x'-floor(a/b)*y',d']
     return new EuclidObject(prevStep.y,tmp,prevStep.d).toArray();
+   
   }
   
-  
-//  Greatest Common Divisor
-//  d=gcd(a,b) d|a d|b where d>= all other divisors
-// AKA a =d(q1) b=d(q2)
-  private BigInteger gcd(BigInteger a, BigInteger b){
-//    a>=b>=0
-    if(b.compareTo(BigInteger.ZERO) == 0) return a;
-    return gcd(b,a.mod(b));
-  }
-  
-  
-  /**Class to allow me to pass multiple vars in a function
-   Class maps to an Euclid object where ax+by=d
-  */
-  private static class EuclidObject {
+  /**
+   * Class to allow me to pass multiple vars in a function
+   *Class maps to an Euclid object where ax+by=d
+   */
+  public static class EuclidObject {
       public BigInteger x,y,d;
       
       public EuclidObject(BigInteger x1, BigInteger y1, BigInteger d1){
