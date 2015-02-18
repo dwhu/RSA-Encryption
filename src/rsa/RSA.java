@@ -23,7 +23,7 @@ public class RSA {
   //Public n = d*e
     n;
   //Private prime d
-  public BigInteger privateKey,
+  private BigInteger privateKey,
   //Private s = (e-1)*(d-1)
     s;
   
@@ -70,7 +70,7 @@ public class RSA {
     //Print privateKey to a file
     try {
       PrintWriter file = new PrintWriter(privFilename);
-      file.write(n + "\n" + publicKey);
+      file.write(n + "\n" + privateKey);
       file.close();
     } catch (FileNotFoundException e1) {
       e1.printStackTrace();
@@ -82,6 +82,7 @@ public class RSA {
    */
   public RSA(String filename){
     Scanner scan = new Scanner(filename);
+    n = scan.nextBigInteger();
     privateKey = scan.nextBigInteger();
   }
   
